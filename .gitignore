@@ -6,7 +6,7 @@ __pycache__/
 *.pyc
 
 # variables sensibles
-.env
+#.env
 
 # sesiones
 session-*
