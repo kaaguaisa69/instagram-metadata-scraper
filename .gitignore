@@ -1,0 +1,15 @@
+# entorno virtual
+.venv/
+
+# cache python
+__pycache__/
+*.pyc
+
+# variables sensibles
+.env
+
+# sesiones
+session-*
+
+# salida del programa
+output/
