@@ -34,9 +34,6 @@ def main() -> None:
     # El resultado final se guardará en formato JSON dentro de la carpeta output.
     output_file = "output/latest_posts.json"
 
-    # Definimos la ruta de salida. Usamos CSV para que sea facil de abrir en Excel.
-    output_file = "output/metadata_instagram.csv"
-
     # Muestra encabezado con la configuración actual.
     print("=" * 60)
     print("  Instagram Metadata Scraper")
