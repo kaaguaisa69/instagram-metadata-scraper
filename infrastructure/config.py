@@ -7,34 +7,39 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_instagram_credentials() -> tuple[str, str]:
+def get_instagram_username() -> str:
     """
-    Obtiene las credenciales de Instagram desde variables de entorno.
+    Obtiene el username de Instagram desde variables de entorno.
 
     Retorna:
-    - Una tupla con:
-        1. username -> nombre de usuario de Instagram
-        2. password -> contraseña de Instagram
+    - El nombre de usuario de Instagram
 
     Lanza:
-    - ValueError si falta alguna credencial en el archivo .env
+    - ValueError si falta la credencial en el archivo .env
     """
 
     # Lee el valor de la variable INSTAGRAM_USERNAME.
     # Si no existe, devuelve una cadena vacía.
     username = os.getenv("INSTAGRAM_USERNAME", "")
 
-    # Lee el valor de la variable INSTAGRAM_PASSWORD.
-    # Si no existe, devuelve una cadena vacía.
-    password = os.getenv("INSTAGRAM_PASSWORD", "")
-
-    # Valida que ambas credenciales existan antes de continuar.
-    # Esto evita que el programa falle más adelante con errores menos claros.
-    if not username or not password:
+    # Valida que el username exista antes de continuar.
+    if not username:
         raise ValueError(
-            "Faltan credenciales en el archivo .env. "
-            "Debes definir INSTAGRAM_USERNAME e INSTAGRAM_PASSWORD."
+            "Falta INSTAGRAM_USERNAME en el archivo .env.\n"
+            "Ejemplo de contenido del .env:\n"
+            "INSTAGRAM_USERNAME=tu_usuario_sin_arroba"
         )
 
-    # Retorna las credenciales ya validadas.
-    return username, password
+    # Retorna el username ya validado.
+    return username
+
+
+def get_browser_name() -> str:
+    """
+    Obtiene el nombre del navegador desde variables de entorno.
+
+    Retorna:
+    - Nombre del navegador (por defecto: firefox)
+    """
+
+    return os.getenv("INSTAGRAM_BROWSER", "firefox").lower()
