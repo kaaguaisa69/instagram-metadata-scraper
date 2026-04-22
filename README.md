@@ -2,34 +2,37 @@
 
 ## 1. Descripción del proyecto
 
-Instagram Metadata Scraper es una solución en Python para extraer la metadata de las 10 publicaciones más recientes de una cuenta de Instagram y guardarla en formato JSON.
+Instagram Metadata Scraper es una solución en Python para extraer la metadata de las publicaciones más recientes de una cuenta de Instagram y guardarla en formato JSON.
 
-La extracción contempla campos clave para análisis de contenido, entre ellos:
+El proyecto extrae hasta 15 campos clave para el análisis de contenido, entre ellos:
 
-- `caption`
-- `hashtags`
-- `likes`
-- `comments` (comentarios)
-- `typename` (tipo de publicación)
-- `url`
-- `date_utc` (fecha)
+- `shortcode`, `post_id`, `permalink`, `url`
+- `typename` (tipo de publicación: imagen, video, carrusel)
+- `date_utc` (fecha de publicación)
+- `caption` (texto)
+- `hashtags` y `mentions`
+- `likes` y `comments`
+- `is_video`
+- `location` y `tagged_users`
 
-En la primera etapa se implementó extracción mediante scraping con Instaloader. Posteriormente, debido a restricciones de autenticación, bloqueo de endpoints y rate limiting, se evaluó la migración hacia la API oficial de Instagram como estrategia más estable para escenarios reales.
+Debido a las estrictas políticas anti-scraping de Instagram en 2025/2026, **el proyecto ha migrado de una autenticación tradicional (usuario/contraseña) a una autenticación basada en cookies de navegador**. Esto reduce significativamente el riesgo de bloqueos y evita problemas con la autenticación en dos pasos (2FA).
 
-## 2. Arquitectura del proyecto
+## 2. Arquitectura del proyecto y Principios SOLID
 
-El proyecto está organizado con una arquitectura por capas para separar responsabilidades y facilitar mantenimiento:
+El proyecto está organizado con una arquitectura por capas para separar responsabilidades, facilitar el mantenimiento y cumplir con las mejores prácticas de la ingeniería de software:
 
-- `domain`: modelos de negocio y contratos (interfaces).
-- `app`: lógica de negocio y orquestación del caso de uso.
-- `infrastructure`: implementaciones concretas (scraper, configuración y persistencia).
-- `main.py`: punto de entrada y ensamblaje de dependencias.
+- `domain`: Modelos de datos (`Post`) y contratos o interfaces (`PostScraper`, `PostRepository`).
+- `app`: Contiene la lógica orquestadora (`PostService`).
+- `infrastructure`: Implementaciones concretas (`InstagramScraper`, `JsonPostRepository`, `config.py`).
+- `main.py`: Punto de entrada que ensambla las dependencias.
+- `setup_session.py`: Script independiente para gestionar la importación de la sesión.
 
-### Principios SOLID aplicados
+### Principios Aplicados:
 
-- **SRP (Single Responsibility Principle):** cada clase tiene una responsabilidad concreta (extraer, persistir, orquestar, modelar).
-- **DIP (Dependency Inversion Principle):** `PostService` depende de abstracciones (`PostScraper`, `PostRepository`) y no de implementaciones concretas.
-- **OCP (Open/Closed Principle):** se pueden añadir nuevas implementaciones (por ejemplo, repositorio SQL o scraper por API oficial) sin modificar la lógica central del servicio.
+- **SRP (Responsabilidad Única):** Cada clase tiene un único propósito. Por ejemplo, `JsonPostRepository` solo sabe cómo guardar archivos, no sabe cómo hacer scraping.
+- **OCP (Abierto/Cerrado):** El sistema permite agregar nuevas formas de guardar datos (ej. un `CsvRepository` para Excel) sin modificar la lógica principal de `PostService`.
+- **DIP (Inversión de Dependencias):** `PostService` depende de las interfaces (contratos) definidos en `domain`, no de las implementaciones directas de `infrastructure`.
+- **Manejo de Errores Silencioso:** Se implementaron bloques `try-except` granulares. Si Instagram bloquea la extracción de un dato específico (como la ubicación geográfica), el scraper no falla; simplemente marca ese campo como nulo y continúa extrayendo el resto de la metadata de la publicación.
 
 ## 3. Tecnologías utilizadas
 
@@ -149,75 +152,98 @@ Razones:
 
 ### 8.2 Crear y activar entorno virtual
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
+1. Crea el entorno virtual:
+   ```powershell
+   python -m venv .venv
+   ```
 
-### 8.3 Instalar dependencias
+2. Activa el entorno virtual:
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   ```
 
-```powershell
-pip install -r requirements.txt
-```
+3. Instala las dependencias:
+   ```powershell
+   pip install -r requirements.txt
+   ```
 
-### 8.4 Configurar variables de entorno
+### 8.3 Configurar las variables de entorno
 
-Crear archivo `.env` en la raíz del proyecto:
+Crea un archivo llamado `.env` en la raíz del proyecto (junto a `main.py`). Añade lo siguiente:
 
 ```env
 INSTAGRAM_USERNAME=tu_usuario_sin_arroba
-INSTAGRAM_PASSWORD=tu_password
+INSTAGRAM_BROWSER=firefox
 ```
 
-### 8.5 Ejecutar
+_(Puedes cambiar `firefox` por `chrome`, `brave`, `edge` u `opera` dependiendo del navegador que vayas a usar)._
+
+### 8.4 Iniciar Sesión Manualmente en el Navegador
+
+1. Abre el navegador web que pusiste en el `.env` (ej. Firefox).
+2. Entra a [https://www.instagram.com](https://www.instagram.com).
+3. **Inicia sesión** con tu cuenta.
+4. Si te pregunta "¿Guardar información de inicio de sesión?", haz clic en **Guardar/Aceptar** (esto es crucial para generar la cookie persistente).
+5. Navega un par de segundos viendo fotos.
+6. **CIERRA EL NAVEGADOR POR COMPLETO.** (No debe quedar abierto ni en segundo plano).
+
+### 8.5 Importar la Sesión al Proyecto
+
+Con el navegador cerrado y el entorno virtual activado, ejecuta:
+
+```powershell
+python setup_session.py
+```
+
+Este script leerá tu navegador, extraerá la cookie de sesión y creará un archivo local (`session-tuusuario`). Verás mensajes de "OK" validando la sesión.
+
+---
+
+## 9. Ejecución del Scraper
+
+Una vez que el archivo de sesión ha sido generado con éxito, simplemente ejecuta:
 
 ```powershell
 python main.py
 ```
 
-Al finalizar, el sistema genera el archivo de salida en:
+El script cargará la sesión almacenada, buscará las últimas 10 publicaciones, procesará los 15 campos de metadata (imprimiendo un resumen limpio en la consola) y guardará el resultado final en `output/latest_posts.json`.
 
-- `output/latest_posts.json`
+---
 
-## 9. Ejemplo de salida (JSON)
+## 10. Resolución de Problemas Frecuentes
+
+- **Error: "Navegador bloqueado o base de datos en uso" al ejecutar `setup_session.py`**
+  El navegador sigue abierto. Ciérralo completamente desde el Administrador de Tareas.
+- **Error: "La sesión cargada no es válida" o "Login required"**
+  Instagram invalidó tu sesión o la cookie expiró. Abre tu navegador, entra a Instagram, cierra sesión, vuelve a iniciar sesión (marcando "Recordar cuenta"), cierra el navegador y vuelve a ejecutar `python setup_session.py`.
+- **Mensaje en consola: "Error al procesar ubicación (201 Created)"**
+  Instagram a menudo bloquea las peticiones de geolocalización a los scrapers. El script está diseñado para interceptar este error, dejar la ubicación vacía y continuar guardando los likes, comentarios, etc., sin detener la ejecución.
+
+---
+
+## 11. Ejemplo de Estructura de Salida (JSON)
+
+El archivo generado en `output/latest_posts.json` se verá así:
 
 ```json
 [
-	{
-		"shortcode": "DABC123xyz",
-		"post_id": "1234567890123456789",
-		"permalink": "https://www.instagram.com/p/DABC123xyz/",
-		"date_utc": "2026-04-20T15:42:10+00:00",
-		"caption": "Ejemplo de publicación #python #data",
-		"hashtags": ["python", "data"],
-		"mentions": ["usuario_demo"],
-		"typename": "GraphImage",
-		"is_video": false,
-		"likes": 230,
-		"comments": 18,
-		"url": "https://instagram.example/cdn/post.jpg",
-		"location": null,
-		"tagged_users": [],
-		"owner_username": "cuenta_objetivo"
-	}
+  {
+    "shortcode": "BzKHTrlF_jS",
+    "post_id": "1234567890123456789",
+    "permalink": "https://www.instagram.com/p/BzKHTrlF_jS/",
+    "date_utc": "2026-04-22T15:42:10+00:00",
+    "caption": "Ejemplo de publicación #python",
+    "hashtags": ["python", "data"],
+    "mentions": [],
+    "typename": "GraphImage",
+    "is_video": false,
+    "likes": 230,
+    "comments": 18,
+    "url": "https://instagram.example/cdn/post.jpg",
+    "location": null,
+    "tagged_users": [],
+    "owner_username": "cuenta_objetivo"
+  }
 ]
 ```
-
-## 10. Buenas prácticas aplicadas
-
-- separación clara de responsabilidades por capa;
-- uso de contratos (interfaces) para desacoplar lógica e implementación;
-- manejo de credenciales mediante variables de entorno;
-- captura y comunicación de errores relevantes en autenticación/login;
-- persistencia estructurada para facilitar integraciones posteriores.
-
-## 11. Posibles mejoras
-
-- integración completa con Instagram Graph API oficial;
-- estrategias de rate limiting y reintentos controlados;
-- persistencia en base de datos (PostgreSQL/MySQL) para consultas analíticas;
-- logging estructurado (JSON logs) con niveles y trazabilidad.
-
-## 12. Nota de alcance
-
-La versión actual cumple el objetivo de extracción de metadata en entorno controlado. Para uso productivo, la ruta recomendada es la migración a API oficial y la incorporación de monitoreo, observabilidad y controles de resiliencia.
