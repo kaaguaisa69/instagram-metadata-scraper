@@ -1,249 +1,408 @@
-# Instagram Metadata Scraper
+# Instagram Metadata Scraper - HTTP + Cookies (Refactor 2026)
 
-## 1. Descripción del proyecto
+## 🎯 Descripción del Proyecto
 
-Instagram Metadata Scraper es una solución en Python para extraer la metadata de las publicaciones más recientes de una cuenta de Instagram y guardarla en formato JSON.
+Scraper en **Python puro** que extrae metadata de las últimas 10 publicaciones de una cuenta pública de Instagram mediante:
 
-El proyecto extrae hasta 15 campos clave para el análisis de contenido, entre ellos:
+-- **Requests HTTP directos** (sin Selenium, BeautifulSoup ni APIs oficiales)
+- **Cookies reales de sesión** (obtenidas del navegador)
+- **Headers realistas** que simulan cliente móvil Instagram
+- **Delays aleatorios** para evitar rate limiting
+- **Arquitectura limpia por capas** con principios SOLID
 
+### Metadata Extraída
+
+Por cada post se obtiene:
 - `shortcode`, `post_id`, `permalink`, `url`
-- `typename` (tipo de publicación: imagen, video, carrusel)
-- `date_utc` (fecha de publicación)
-- `caption` (texto)
-- `hashtags` y `mentions`
-- `likes` y `comments`
-- `is_video`
-- `location` y `tagged_users`
+- `caption`, `hashtags`, `mentions`
+- `date_utc`, `likes`, `comments`
+- `typename` (imagen, video, carrusel)
+- `is_video`, `location`, `tagged_users`, `owner_username`
 
-Debido a las estrictas políticas anti-scraping de Instagram en 2025/2026, **el proyecto ha migrado de una autenticación tradicional (usuario/contraseña) a una autenticación basada en cookies de navegador**. Esto reduce significativamente el riesgo de bloqueos y evita problemas con la autenticación en dos pasos (2FA).
+## 🏗️ Arquitectura
 
-## 2. Arquitectura del proyecto y Principios SOLID
+**Estructura por capas** (SOLID compliant):
 
-El proyecto está organizado con una arquitectura por capas para separar responsabilidades, facilitar el mantenimiento y cumplir con las mejores prácticas de la ingeniería de software:
-
-- `domain`: Modelos de datos (`Post`) y contratos o interfaces (`PostScraper`, `PostRepository`).
-- `app`: Contiene la lógica orquestadora (`PostService`).
-- `infrastructure`: Implementaciones concretas (`InstagramScraper`, `JsonPostRepository`, `config.py`).
-- `main.py`: Punto de entrada que ensambla las dependencias.
-- `setup_session.py`: Script independiente para gestionar la importación de la sesión.
-
-### Principios Aplicados:
-
-- **SRP (Responsabilidad Única):** Cada clase tiene un único propósito. Por ejemplo, `JsonPostRepository` solo sabe cómo guardar archivos, no sabe cómo hacer scraping.
-- **OCP (Abierto/Cerrado):** El sistema permite agregar nuevas formas de guardar datos (ej. un `CsvRepository` para Excel) sin modificar la lógica principal de `PostService`.
-- **DIP (Inversión de Dependencias):** `PostService` depende de las interfaces (contratos) definidos en `domain`, no de las implementaciones directas de `infrastructure`.
-- **Manejo de Errores Silencioso:** Se implementaron bloques `try-except` granulares. Si Instagram bloquea la extracción de un dato específico (como la ubicación geográfica), el scraper no falla; simplemente marca ese campo como nulo y continúa extrayendo el resto de la metadata de la publicación.
-
-## 3. Tecnologías utilizadas
-
-- **Python:** lenguaje principal para la implementación del flujo de extracción y procesamiento.
-- **Instaloader:** librería usada para scraping de publicaciones y metadata de Instagram.
-- **python-dotenv:** carga de variables de entorno desde `.env` para no hardcodear credenciales.
-- **JSON:** formato de salida para persistir metadata de forma portable y fácil de consumir.
-- **Virtual Environment (`.venv`):** aislamiento de dependencias para evitar conflictos entre proyectos.
-
-## 4. Flujo del sistema
-
-El flujo de ejecución actual es:
-
-1. Se leen credenciales desde variables de entorno (`.env`).
-2. Se instancia el scraper concreto (`InstagramScraper`).
-3. Se solicitan las últimas publicaciones del perfil objetivo (límite: 10).
-4. Cada publicación se transforma al modelo interno `Post`.
-5. Se persiste el resultado en JSON mediante `JsonPostRepository`.
-6. Se muestra un resumen en consola con total de publicaciones y archivo generado.
-
-## 5. Problemas encontrados y resolución
-
-Esta sección resume incidencias reales observadas durante la implementación y ejecución.
-
-### 5.1 Error en PowerShell al crear estructura (`mkdir` y `type nul`)
-
-- **Qué ocurrió:** comandos de creación de carpetas/archivos ejecutados con sintaxis no compatible según shell o contexto.
-- **Causa:** diferencias entre CMD y PowerShell para redirecciones y creación rápida de archivos.
-- **Mitigación:** usar comandos equivalentes en PowerShell (`New-Item -ItemType Directory/File`) o una sintaxis consistente por terminal.
-
-### 5.2 Python no reconocido en sistema
-
-- **Qué ocurrió:** el comando `python` no era reconocido inicialmente.
-- **Causa:** Python no instalado correctamente o no agregado al `PATH`.
-- **Mitigación:** instalar Python desde fuente oficial y marcar la opción para añadir al `PATH`, luego reiniciar terminal.
-
-### 5.3 Entorno virtual no activado
-
-- **Qué ocurrió:** dependencias instaladas fuera del entorno esperado o no disponibles.
-- **Causa:** ejecución de comandos sin activar `.venv`.
-- **Mitigación:** activar entorno antes de instalar/ejecutar (`.venv\Scripts\Activate.ps1` en PowerShell).
-
-### 5.4 Módulo `dotenv` no encontrado
-
-- **Qué ocurrió:** error `ModuleNotFoundError` al importar `dotenv`.
-- **Causa:** paquete `python-dotenv` no instalado en el entorno activo.
-- **Mitigación:** instalar dependencias desde `requirements.txt` con el entorno virtual activo.
-
-### 5.5 Problemas con autenticación 2FA
-
-- **Qué ocurrió:** Instagram solicitó autenticación de dos factores al hacer login.
-- **Causa:** política de seguridad de la cuenta.
-- **Mitigación:** se implementó flujo de ingreso manual del código 2FA y guardado de sesión reutilizable.
-
-### 5.6 Códigos 2FA inválidos o expirados
-
-- **Qué ocurrió:** códigos rechazados durante el proceso de login.
-- **Causa:** ventanas de tiempo cortas en TOTP o desfase de hora del dispositivo.
-- **Mitigación:** reintentar con código recién generado, validar hora del sistema y mejorar mensaje de error al usuario.
-
-### 5.7 Uso de `@` en username
-
-- **Qué ocurrió:** fallos al resolver perfil cuando el usuario se ingresaba con prefijo `@`.
-- **Causa:** Instaloader espera username sin `@`.
-- **Mitigación:** estandarizar entrada sin `@` (o normalizar eliminándolo antes de consulta).
-
-### 5.8 `ProfileNotExistsException` aunque el perfil sí existía
-
-- **Qué ocurrió:** excepción de perfil inexistente en cuentas reales.
-- **Causa:** inconsistencias por sesión inválida, bloqueos temporales o restricciones de consulta.
-- **Mitigación:** reutilizar sesión válida, forzar nuevo login cuando la sesión falle y reducir frecuencia de intentos.
-
-### 5.9 Bloqueo de Instagram: "Please wait a few minutes before you try again"
-
-- **Qué ocurrió:** bloqueo temporal por actividad detectada como automatizada.
-- **Causa:** mecanismos anti-bot/rate limiting de Instagram.
-- **Mitigación:** espaciar ejecuciones, reutilizar sesión, evitar intentos repetitivos y considerar migración a API oficial.
-
-### 5.10 Restricción de endpoints GraphQL de Instagram
-
-- **Qué ocurrió:** respuestas inconsistentes o bloqueos al consumir rutas no oficiales usadas por scraping.
-- **Causa:** cambios no documentados y controles internos de plataforma.
-- **Mitigación:** aceptar la limitación del enfoque, desacoplar arquitectura y preparar reemplazo por integración oficial.
-
-### 5.11 Inestabilidad del scraping con herramientas no oficiales
-
-- **Qué ocurrió:** comportamiento variable entre ejecuciones (autenticación, disponibilidad, consistencia).
-- **Causa:** dependencia de mecanismos no soportados oficialmente por Meta.
-- **Mitigación:** diseño por capas para facilitar migración y reducción del acoplamiento al scraper actual.
-
-## 6. Limitaciones del enfoque con scraping
-
-El scraping presenta limitaciones técnicas importantes:
-
-- Instagram puede bloquear accesos automatizados sin previo aviso.
-- Los endpoints utilizados no son oficiales ni estables.
-- Existen límites de frecuencia (rate limiting) y validaciones anti-abuso.
-- No es una estrategia confiable para entornos de producción con requerimientos de alta disponibilidad.
-
-## 7. Decisión técnica final
-
-Debido a las limitaciones anteriores, la recomendación técnica es migrar hacia la **Instagram Graph API oficial** para cuentas **Business/Creator**.
-
-Razones:
-
-- mayor estabilidad operativa;
-- soporte oficial por Meta;
-- menor probabilidad de bloqueos por automatización;
-- mejor proyección para producción, auditoría y mantenimiento.
-
-## 8. Cómo ejecutar el proyecto
-
-### 8.1 Prerrequisitos
-
-- Python 3.10+ instalado.
-- PowerShell o terminal compatible.
-
-### 8.2 Crear y activar entorno virtual
-
-1. Crea el entorno virtual:
-   ```powershell
-   python -m venv .venv
-   ```
-
-2. Activa el entorno virtual:
-   ```powershell
-   .\.venv\Scripts\Activate.ps1
-   ```
-
-3. Instala las dependencias:
-   ```powershell
-   pip install -r requirements.txt
-   ```
-
-### 8.3 Configurar las variables de entorno
-
-Crea un archivo llamado `.env` en la raíz del proyecto (junto a `main.py`). Añade lo siguiente:
-
-```env
-INSTAGRAM_USERNAME=tu_usuario_sin_arroba
-INSTAGRAM_BROWSER=firefox
+```
+project/
+├── domain/                          # Contratos (interfaces)
+│   ├── contracts.py                # PostScraper, PostRepository (ABC)
+│   └── post.py                     # Modelo Post (dataclass)
+├── app/                            # Lógica de aplicación
+│   └── post_service.py             # Orquestador PostService
+├── infrastructure/                 # Implementaciones concretas
+│   ├── instagram_http_scraper.py   # Scraper con httpx
+│   ├── cookie_manager.py           # Carga cookies desde .env
+│   ├── headers.py                  # Headers realistas (iPhone)
+│   ├── delay_manager.py            # Delays aleatorios
+│   ├── config.py                   # Validación de configuración
+│   ├── json_repository.py          # Guardado en JSON
+│   └── __init__.py
+├── main.py                         # Punto de entrada
+├── requirements.txt                # Dependencias
+├── .env.example                    # Plantilla de variables
+└── REFACTOR.md                     # Documentación técnica del refactor
 ```
 
-_(Puedes cambiar `firefox` por `chrome`, `brave`, `edge` u `opera` dependiendo del navegador que vayas a usar)._
+### Principios SOLID Aplicados
 
-### 8.4 Iniciar Sesión Manualmente en el Navegador
+| Principio | Aplicación |
+|-----------|-----------|
+| **SRP** | Cada módulo tiene responsabilidad única: `cookie_manager` carga cookies, `headers` construye headers, etc. |
+| **OCP** | Se pueden agregar nuevos `PostScraper` o `PostRepository` sin modificar `PostService` |
+| **LSP** | `InstagramHttpScraper` implementa correctamente el contrato `PostScraper` |
+| **ISP** | Contratos mínimos e independientes (`PostScraper`, `PostRepository`) |
+| **DIP** | `PostService` depende de abstracciones (`ABC`), no de implementaciones |
 
-1. Abre el navegador web que pusiste en el `.env` (ej. Firefox).
-2. Entra a [https://www.instagram.com](https://www.instagram.com).
-3. **Inicia sesión** con tu cuenta.
-4. Si te pregunta "¿Guardar información de inicio de sesión?", haz clic en **Guardar/Aceptar** (esto es crucial para generar la cookie persistente).
-5. Navega un par de segundos viendo fotos.
-6. **CIERRA EL NAVEGADOR POR COMPLETO.** (No debe quedar abierto ni en segundo plano).
+## 🔑 Tecnologías
 
-### 8.5 Importar la Sesión al Proyecto
+- **Python 3.7+**
+- **httpx** - Requests HTTP con soporte async
+- **python-dotenv** - Carga de variables de entorno
+- **JSON** - Formato de salida
 
-Con el navegador cerrado y el entorno virtual activado, ejecuta:
+## 🚀 Configuración Rápida
 
-```powershell
-python setup_session.py
+### 1. Clonar / Descargar Proyecto
+
+```bash
+cd instagram-metadata-scraper
 ```
 
-Este script leerá tu navegador, extraerá la cookie de sesión y creará un archivo local (`session-tuusuario`). Verás mensajes de "OK" validando la sesión.
+### 2. Crear Entorno Virtual
 
----
+```bash
+python -m venv .venv
+.venv\Scripts\Activate.ps1  # Windows PowerShell
+# o
+source .venv/bin/activate  # Linux/Mac
+```
 
-## 9. Ejecución del Scraper
+### 3. Instalar Dependencias
 
-Una vez que el archivo de sesión ha sido generado con éxito, simplemente ejecuta:
+```bash
+pip install -r requirements.txt
+```
 
-```powershell
+### 4. Obtener Cookies de Sesión
+
+**En tu navegador:**
+
+1. Abre https://www.instagram.com e inicia sesión
+2. Abre DevTools (F12)
+3. Ve a **Application** → **Cookies** → **www.instagram.com**
+4. Busca y copia los valores de:
+   - `sessionid`
+   - `csrftoken`
+   - `ds_user_id`
+
+### 5. Configurar Variables de Entorno
+
+Crea `.env` en la raíz del proyecto:
+
+```bash
+# Copiar desde plantilla
+cp .env.example .env
+
+# Editar con tus valores
+INSTAGRAM_USERNAME=tu_usuario
+INSTAGRAM_SESSIONID=abc123def456...
+INSTAGRAM_CSRFTOKEN=xyz789...
+INSTAGRAM_DS_USER_ID=123456789
+```
+
+### 6. Ejecutar Scraper
+
+```bash
 python main.py
 ```
 
-El script cargará la sesión almacenada, buscará las últimas 10 publicaciones, procesará los 15 campos de metadata (imprimiendo un resumen limpio en la consola) y guardará el resultado final en `output/latest_posts.json`.
+**Salida esperada:**
 
----
+```
+INFO | ╔════════════════════════════════════════════════════════════╗
+INFO | ║   Instagram Metadata Scraper (HTTP + Cookies)             ║
+INFO | ║   Endpoint: https://i.instagram.com/api/v1/users/web...   ║
+INFO | ╚════════════════════════════════════════════════════════════╝
+INFO |
+INFO | Configuración:
+INFO |   • Usuario autenticado: tu_usuario
+INFO |   • Perfil objetivo: tu_usuario
+INFO |   • Posts a obtener: 10
+INFO |   • Archivo de salida: output/latest_posts.json
+INFO |
+INFO | ✓ Componentes inicializados correctamente
+INFO | ✓ Cookies cargadas desde .env
+INFO | ✓ Cliente HTTP listo (delay: 1.0-3.0 segundos)
+INFO |
+INFO | [1/10] ✓ Procesado: shortcode_123 (likes: 250, comments: 15)
+INFO | [2/10] ✓ Procesado: shortcode_456 (likes: 1200, comments: 87)
+...
+INFO |
+INFO | ╔════════════════════════════════════════════════════════════╗
+INFO | ║  ✓ Proceso completado exitosamente                      ║
+INFO | ╚════════════════════════════════════════════════════════════╝
+INFO |
+INFO | Resultados:
+INFO |   • Posts extraídos: 10
+INFO |   • Archivo guardado: output/latest_posts.json
+```
 
-## 10. Resolución de Problemas Frecuentes
-
-- **Error: "Navegador bloqueado o base de datos en uso" al ejecutar `setup_session.py`**
-  El navegador sigue abierto. Ciérralo completamente desde el Administrador de Tareas.
-- **Error: "La sesión cargada no es válida" o "Login required"**
-  Instagram invalidó tu sesión o la cookie expiró. Abre tu navegador, entra a Instagram, cierra sesión, vuelve a iniciar sesión (marcando "Recordar cuenta"), cierra el navegador y vuelve a ejecutar `python setup_session.py`.
-- **Mensaje en consola: "Error al procesar ubicación (201 Created)"**
-  Instagram a menudo bloquea las peticiones de geolocalización a los scrapers. El script está diseñado para interceptar este error, dejar la ubicación vacía y continuar guardando los likes, comentarios, etc., sin detener la ejecución.
-
----
-
-## 11. Ejemplo de Estructura de Salida (JSON)
-
-El archivo generado en `output/latest_posts.json` se verá así:
+**Resultado en `output/latest_posts.json`:**
 
 ```json
 [
   {
-    "shortcode": "BzKHTrlF_jS",
-    "post_id": "1234567890123456789",
-    "permalink": "https://www.instagram.com/p/BzKHTrlF_jS/",
-    "date_utc": "2026-04-22T15:42:10+00:00",
-    "caption": "Ejemplo de publicación #python",
-    "hashtags": ["python", "data"],
+    "shortcode": "ABC123XYZ",
+    "post_id": "1234567890",
+    "permalink": "https://www.instagram.com/p/ABC123XYZ/",
+    "date_utc": "2026-04-29T15:30:45",
+    "caption": "Hello world! #instagram #scraping",
+    "hashtags": ["instagram", "scraping"],
     "mentions": [],
     "typename": "GraphImage",
     "is_video": false,
-    "likes": 230,
-    "comments": 18,
-    "url": "https://instagram.example/cdn/post.jpg",
+    "likes": 250,
+    "comments": 15,
+    "url": "https://instagram.com/...jpg",
     "location": null,
     "tagged_users": [],
-    "owner_username": "cuenta_objetivo"
-  }
+    "owner_username": "tu_usuario"
+  },
+  ...
 ]
 ```
+
+## 🔐 Seguridad y Privacidad
+
+- **Sin almacenar credenciales:** Solo se guardan cookies en `.env` (archivo local, no versionado)
+- **Sin login automático:** Se usan cookies existentes del navegador
+- **Sin datos confidenciales:** Solo se extraen datos públicos (posts, likes, etc.)
+- **Respeta rate limiting:** Detecta error 429 y detiene proceso
+
+## ⚠️ Manejo de Errores
+
+### Si no se extraen posts:
+
+**Causa:** `⚠️ EMPTY EDGES - No posts in timeline`
+
+**Soluciones:**
+
+1. **Cookies expiradas**
+   - Abre Instagram en tu navegador
+   - Copia las cookies nuevamente
+   - Actualiza `.env`
+
+2. **Sesión no válida**
+   - Inicia sesión nuevamente en Instagram
+   - Asegúrate que las cookies sean recientes (hoy)
+
+3. **Cuenta privada**
+   - El endpoint solo devuelve posts públicos
+   - Verifica que tu cuenta sea pública
+
+4. **Rate limited**
+   - Instagram limitó la sesión
+   - Espera 1-2 horas
+   - Reintenta con cookies actualizadas
+
+**Ver logs completos:**
+
+El scraper imprime logs detallados. Si hay error, revisa la salida para más detalles.
+
+## 📊 Ejemplo de Uso Programático
+
+```python
+from infrastructure.instagram_http_scraper import InstagramHttpScraper
+from infrastructure.json_repository import JsonPostRepository
+from app.post_service import PostService
+
+# Crear componentes
+scraper = InstagramHttpScraper()
+repository = JsonPostRepository()
+service = PostService(scraper, repository)
+
+# Extraer y guardar posts
+posts = service.extract_and_save_posts(
+    profile_username="target_user",
+    limit=10,
+    file_path="output/posts.json"
+)
+
+# Procesar posts
+for post in posts:
+    print(f"{post.shortcode}: {len(post.hashtags)} hashtags, {post.likes} likes")
+```
+
+## 🔍 Implementación Técnica
+
+### Flujo del Scraper
+
+```
+1. Cargar cookies desde .env
+   ↓
+2. Construir headers realistas (iPhone Instagram)
+   ↓
+3. Request HTTP a i.instagram.com endpoint
+   ↓
+4. Validar respuesta (status 200, JSON válido)
+   ↓
+5. Extraer timeline_media.edges
+   ↓
+6. Por cada edge: parsear JSON → objeto Post
+   ↓
+7. Aplicar delay aleatorio (1-3 segundos)
+   ↓
+8. Guardar lista en JSON
+```
+
+### Endpoint Crítico
+
+**Antes (❌ no funciona):**
+```
+https://www.instagram.com/api/v1/users/web_profile_info/?username=target
+```
+
+**Ahora (✅ funciona):**
+```
+https://i.instagram.com/api/v1/users/web_profile_info/?username=target
+```
+
+`i.instagram.com` es el servidor móvil que devuelve datos completos cuando se usan headers móviles.
+
+### Headers Realistas
+
+```python
+{
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 246.0.0.0.0",
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "x-ig-app-id": "936619743392459",
+    "X-CSRFToken": "{csrf_token}",
+    "Referer": "https://www.instagram.com/",
+    "Cookie": "sessionid=...; csrftoken=...; ds_user_id=..."
+}
+```
+
+### Delays Aleatorios
+
+```python
+def human_delay(min_s=1.0, max_s=3.0):
+    """Espera tiempo aleatorio para simular navegación humana"""
+    time.sleep(random.uniform(min_s, max_s))
+```
+
+Se aplica entre posts para evitar patrones detectables de bots.
+
+## 📚 Estructura JSON Esperada
+
+El endpoint devuelve JSON con estructura:
+
+```
+data
+└── user
+    ├── username
+    ├── id
+    ├── full_name
+    └── edge_owner_to_timeline_media
+        └── edges[]
+            ├── node (post)
+            │   ├── shortcode
+            │   ├── id
+            │   ├── taken_at_timestamp
+            │   ├── caption (con hashtags)
+            │   ├── edge_media_to_caption
+            │   ├── edge_liked_by (likes)
+            │   ├── edge_media_to_comment (comments)
+            │   ├── display_url
+            │   └── ...
+```
+
+## 🎓 Principios Académicos
+
+### ¿Por qué este enfoque?
+
+1. **HTTP + Cookies** (no Selenium)
+   - Más eficiente (sin cargar navegador completo)
+   - Más rápido (milisegundos vs segundos)
+   - Fácil de debuggear (ver requests/responses)
+
+2. **Headers realistas** (no APIs oficiales)
+   - Simula cliente legítimo
+   - Instagram reconoce como navegador móvil
+   - No requiere API key o permiso oficial
+
+3. **Arquitectura limpia** (SOLID)
+   - Código mantenible y escalable
+   - Fácil de testear
+   - Separación clara de responsabilidades
+
+4. **Manejo robusto** (no asumir JSON perfecto)
+   - Validación en todos los pasos
+   - Extrae datos alternativos si campos cambian
+   - Logging detallado para debugging
+
+## 📝 Archivos Importantes
+
+| Archivo | Propósito |
+|---------|-----------|
+| `main.py` | Punto de entrada, orquestación |
+| `infrastructure/instagram_http_scraper.py` | Lógica de scraping |
+| `infrastructure/headers.py` | Construcción de headers |
+| `infrastructure/cookie_manager.py` | Carga de cookies |
+| `infrastructure/delay_manager.py` | Delays aleatorios |
+| `app/post_service.py` | Orquestador de casos de uso |
+| `domain/contracts.py` | Interfaces/contratos |
+| `.env` | Variables de entorno (no versionado) |
+| `REFACTOR.md` | Documentación técnica detallada |
+
+## 🐛 Debugging
+
+**Ver logs detallados:**
+
+```bash
+# Los logs se muestran automáticamente en consola
+# Incluyen:
+# - Inicio y fin de cada paso
+# - Requests realizadas
+# - Estructuras JSON recibidas
+# - Errores específicos
+```
+
+**Si edges está vacío:**
+
+```
+WARNING | ⚠️ EMPTY EDGES - No posts in timeline
+WARNING | This could mean:
+WARNING |   - Account is private or restricted
+WARNING |   - Session cookies are invalid or expired
+WARNING |   - Instagram is rate-limiting this session
+WARNING |   - Account has no public posts
+```
+
+## 📖 Referencias
+
+- [RFC 7231 - HTTP/1.1 Semantics](https://tools.ietf.org/html/rfc7231)
+- [RFC 6265 - HTTP State Management](https://tools.ietf.org/html/rfc6265)
+- [httpx Documentation](https://www.python-httpx.org/)
+
+## ⚖️ Disclaimer Académico y Legal
+
+Este proyecto es **estrictamente para fines educativos** en contextos académicos que requieren demostrar conocimiento de:
+
+- Protocolos HTTP
+- Gestión de cookies y sesiones
+- Parsing de JSON
+- Arquitectura de software
+
+**No constituye:**
+- Sistema de scraping a escala
+- Intención de evadir protecciones de Instagram
+- Violación de Términos de Servicio
+
+**Respeta:**
+- Rate limiting (detecta 429)
+- Privacidad de datos (solo datos públicos)
+- Términos de Servicio de Instagram (uso personal, educativo)
+
+---

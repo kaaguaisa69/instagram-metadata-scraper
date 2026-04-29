@@ -8,7 +8,7 @@ __pycache__/
 # variables sensibles
 #.env
 
-# sesiones de instaloader
+# sesiones
 session-*
 
 # salida del programa

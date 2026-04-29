@@ -13,7 +13,7 @@ class PostService:
     - enviar las publicaciones al repositorio
     - devolver el resultado al flujo principal
 
-    Esta clase NO conoce detalles internos de Instaloader.
+    Esta clase no conoce detalles internos de la implementación concreta del scraper.
     Esta clase NO conoce cómo se escribe el JSON internamente.
     Esta clase solo orquesta el proceso.
     """

@@ -43,3 +43,38 @@ def get_browser_name() -> str:
     """
 
     return os.getenv("INSTAGRAM_BROWSER", "firefox").lower()
+
+
+def get_instagram_cookies() -> dict:
+    """
+    Lee las cookies necesarias para usar una sesión de Instagram
+
+    Retorna:
+    - Dict con claves: sessionid, csrftoken, ds_user_id
+
+    Lanza:
+    - ValueError si falta alguna variable obligatoria en el .env
+    """
+
+    sessionid = os.getenv("INSTAGRAM_SESSIONID", "")
+    csrftoken = os.getenv("INSTAGRAM_CSRFTOKEN", "")
+    ds_user_id = os.getenv("INSTAGRAM_DS_USER_ID", "")
+
+    missing = []
+    if not sessionid:
+        missing.append("INSTAGRAM_SESSIONID")
+    if not csrftoken:
+        missing.append("INSTAGRAM_CSRFTOKEN")
+    if not ds_user_id:
+        missing.append("INSTAGRAM_DS_USER_ID")
+
+    if missing:
+        raise ValueError(
+            "Faltan variables de entorno obligatorias: " + ", ".join(missing)
+        )
+
+    return {
+        "sessionid": sessionid,
+        "csrftoken": csrftoken,
+        "ds_user_id": ds_user_id,
+    }

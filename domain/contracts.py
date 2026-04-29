@@ -10,7 +10,7 @@ class PostScraper(ABC):
     Este contrato NO implementa lógica.
     Solo define qué métodos deben existir.
 
-    Cualquier clase que haga scraping (Instaloader, API, etc.)
+    Cualquier clase que haga scraping (implementaciones HTTP, API, etc.)
     debe cumplir con este contrato.
     """
 
