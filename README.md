@@ -1,6 +1,6 @@
 # Instagram Metadata Scraper - HTTP + Cookies (Refactor 2026)
 
-## 🎯 Descripción del Proyecto
+## Descripción del Proyecto
 
 Scraper en **Python puro** que extrae metadata de las últimas 10 publicaciones de una cuenta pública de Instagram mediante:
 
@@ -19,7 +19,7 @@ Por cada post se obtiene:
 - `typename` (imagen, video, carrusel)
 - `is_video`, `location`, `tagged_users`, `owner_username`
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 **Estructura por capas** (SOLID compliant):
 
@@ -54,14 +54,14 @@ project/
 | **ISP** | Contratos mínimos e independientes (`PostScraper`, `PostRepository`) |
 | **DIP** | `PostService` depende de abstracciones (`ABC`), no de implementaciones |
 
-## 🔑 Tecnologías
+## Tecnologías
 
 - **Python 3.7+**
 - **httpx** - Requests HTTP con soporte async
 - **python-dotenv** - Carga de variables de entorno
 - **JSON** - Formato de salida
 
-## 🚀 Configuración Rápida
+## Configuración Rápida
 
 ### 1. Clonar / Descargar Proyecto
 
@@ -173,18 +173,18 @@ INFO |   • Archivo guardado: output/latest_posts.json
 ]
 ```
 
-## 🔐 Seguridad y Privacidad
+## Seguridad y Privacidad
 
 - **Sin almacenar credenciales:** Solo se guardan cookies en `.env` (archivo local, no versionado)
 - **Sin login automático:** Se usan cookies existentes del navegador
 - **Sin datos confidenciales:** Solo se extraen datos públicos (posts, likes, etc.)
 - **Respeta rate limiting:** Detecta error 429 y detiene proceso
 
-## ⚠️ Manejo de Errores
+## Manejo de Errores
 
 ### Si no se extraen posts:
 
-**Causa:** `⚠️ EMPTY EDGES - No posts in timeline`
+**Causa:** ` EMPTY EDGES - No posts in timeline`
 
 **Soluciones:**
 
@@ -210,7 +210,7 @@ INFO |   • Archivo guardado: output/latest_posts.json
 
 El scraper imprime logs detallados. Si hay error, revisa la salida para más detalles.
 
-## 📊 Ejemplo de Uso Programático
+## Ejemplo de Uso Programático
 
 ```python
 from infrastructure.instagram_http_scraper import InstagramHttpScraper
@@ -234,7 +234,7 @@ for post in posts:
     print(f"{post.shortcode}: {len(post.hashtags)} hashtags, {post.likes} likes")
 ```
 
-## 🔍 Implementación Técnica
+## Implementación Técnica
 
 ### Flujo del Scraper
 
@@ -258,12 +258,12 @@ for post in posts:
 
 ### Endpoint Crítico
 
-**Antes (❌ no funciona):**
+**Antes (no funciona):**
 ```
 https://www.instagram.com/api/v1/users/web_profile_info/?username=target
 ```
 
-**Ahora (✅ funciona):**
+**Ahora (funciona):**
 ```
 https://i.instagram.com/api/v1/users/web_profile_info/?username=target
 ```
@@ -294,7 +294,7 @@ def human_delay(min_s=1.0, max_s=3.0):
 
 Se aplica entre posts para evitar patrones detectables de bots.
 
-## 📚 Estructura JSON Esperada
+## Estructura JSON Esperada
 
 El endpoint devuelve JSON con estructura:
 
@@ -342,7 +342,7 @@ data
    - Extrae datos alternativos si campos cambian
    - Logging detallado para debugging
 
-## 📝 Archivos Importantes
+## Archivos Importantes
 
 | Archivo | Propósito |
 |---------|-----------|
@@ -356,7 +356,7 @@ data
 | `.env` | Variables de entorno (no versionado) |
 | `REFACTOR.md` | Documentación técnica detallada |
 
-## 🐛 Debugging
+## Debugging
 
 **Ver logs detallados:**
 
@@ -372,7 +372,7 @@ data
 **Si edges está vacío:**
 
 ```
-WARNING | ⚠️ EMPTY EDGES - No posts in timeline
+WARNING | EMPTY EDGES - No posts in timeline
 WARNING | This could mean:
 WARNING |   - Account is private or restricted
 WARNING |   - Session cookies are invalid or expired
@@ -380,13 +380,13 @@ WARNING |   - Instagram is rate-limiting this session
 WARNING |   - Account has no public posts
 ```
 
-## 📖 Referencias
+## Referencias
 
 - [RFC 7231 - HTTP/1.1 Semantics](https://tools.ietf.org/html/rfc7231)
 - [RFC 6265 - HTTP State Management](https://tools.ietf.org/html/rfc6265)
 - [httpx Documentation](https://www.python-httpx.org/)
 
-## ⚖️ Disclaimer Académico y Legal
+## Disclaimer Académico y Legal
 
 Este proyecto es **estrictamente para fines educativos** en contextos académicos que requieren demostrar conocimiento de:
 
