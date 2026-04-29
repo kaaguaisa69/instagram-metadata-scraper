@@ -231,7 +231,7 @@ class InstagramHttpScraper(PostScraper):
         logger.info("Timeline edges found: %d", len(edges))
 
         if not edges:
-            logger.warning("⚠️ EMPTY EDGES - No posts in timeline")
+            logger.warning("EMPTY EDGES - No posts in timeline")
             logger.warning("This could mean:")
             logger.warning("  - Account is private or restricted")
             logger.warning("  - Session cookies are invalid or expired")

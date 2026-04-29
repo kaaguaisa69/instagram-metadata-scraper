@@ -5,6 +5,7 @@
 Scraper en **Python puro** que extrae metadata de las últimas 10 publicaciones de una cuenta pública de Instagram mediante:
 
 -- **Requests HTTP directos** (sin Selenium, BeautifulSoup ni APIs oficiales)
+
 - **Cookies reales de sesión** (obtenidas del navegador)
 - **Headers realistas** que simulan cliente móvil Instagram
 - **Delays aleatorios** para evitar rate limiting
@@ -13,6 +14,7 @@ Scraper en **Python puro** que extrae metadata de las últimas 10 publicaciones 
 ### Metadata Extraída
 
 Por cada post se obtiene:
+
 - `shortcode`, `post_id`, `permalink`, `url`
 - `caption`, `hashtags`, `mentions`
 - `date_utc`, `likes`, `comments`
@@ -39,20 +41,19 @@ project/
 │   ├── json_repository.py          # Guardado en JSON
 │   └── __init__.py
 ├── main.py                         # Punto de entrada
-├── requirements.txt                # Dependencias
-├── .env.example                    # Plantilla de variables
-└── REFACTOR.md                     # Documentación técnica del refactor
+└── requirements.txt                # Dependencias
+
 ```
 
 ### Principios SOLID Aplicados
 
-| Principio | Aplicación |
-|-----------|-----------|
-| **SRP** | Cada módulo tiene responsabilidad única: `cookie_manager` carga cookies, `headers` construye headers, etc. |
-| **OCP** | Se pueden agregar nuevos `PostScraper` o `PostRepository` sin modificar `PostService` |
-| **LSP** | `InstagramHttpScraper` implementa correctamente el contrato `PostScraper` |
-| **ISP** | Contratos mínimos e independientes (`PostScraper`, `PostRepository`) |
-| **DIP** | `PostService` depende de abstracciones (`ABC`), no de implementaciones |
+| Principio | Aplicación                                                                                                 |
+| --------- | ---------------------------------------------------------------------------------------------------------- |
+| **SRP**   | Cada módulo tiene responsabilidad única: `cookie_manager` carga cookies, `headers` construye headers, etc. |
+| **OCP**   | Se pueden agregar nuevos `PostScraper` o `PostRepository` sin modificar `PostService`                      |
+| **LSP**   | `InstagramHttpScraper` implementa correctamente el contrato `PostScraper`                                  |
+| **ISP**   | Contratos mínimos e independientes (`PostScraper`, `PostRepository`)                                       |
+| **DIP**   | `PostService` depende de abstracciones (`ABC`), no de implementaciones                                     |
 
 ## Tecnologías
 
@@ -259,11 +260,13 @@ for post in posts:
 ### Endpoint Crítico
 
 **Antes (no funciona):**
+
 ```
 https://www.instagram.com/api/v1/users/web_profile_info/?username=target
 ```
 
 **Ahora (funciona):**
+
 ```
 https://i.instagram.com/api/v1/users/web_profile_info/?username=target
 ```
@@ -318,7 +321,7 @@ data
             │   └── ...
 ```
 
-## 🎓 Principios Académicos
+## Principios Académicos
 
 ### ¿Por qué este enfoque?
 
@@ -344,17 +347,16 @@ data
 
 ## Archivos Importantes
 
-| Archivo | Propósito |
-|---------|-----------|
-| `main.py` | Punto de entrada, orquestación |
-| `infrastructure/instagram_http_scraper.py` | Lógica de scraping |
-| `infrastructure/headers.py` | Construcción de headers |
-| `infrastructure/cookie_manager.py` | Carga de cookies |
-| `infrastructure/delay_manager.py` | Delays aleatorios |
-| `app/post_service.py` | Orquestador de casos de uso |
-| `domain/contracts.py` | Interfaces/contratos |
-| `.env` | Variables de entorno (no versionado) |
-| `REFACTOR.md` | Documentación técnica detallada |
+| Archivo                                    | Propósito                            |
+| ------------------------------------------ | ------------------------------------ |
+| `main.py`                                  | Punto de entrada, orquestación       |
+| `infrastructure/instagram_http_scraper.py` | Lógica de scraping                   |
+| `infrastructure/headers.py`                | Construcción de headers              |
+| `infrastructure/cookie_manager.py`         | Carga de cookies                     |
+| `infrastructure/delay_manager.py`          | Delays aleatorios                    |
+| `app/post_service.py`                      | Orquestador de casos de uso          |
+| `domain/contracts.py`                      | Interfaces/contratos                 |
+| `.env`                                     | Variables de entorno (no versionado) |
 
 ## Debugging
 
@@ -396,11 +398,13 @@ Este proyecto es **estrictamente para fines educativos** en contextos académico
 - Arquitectura de software
 
 **No constituye:**
+
 - Sistema de scraping a escala
 - Intención de evadir protecciones de Instagram
 - Violación de Términos de Servicio
 
 **Respeta:**
+
 - Rate limiting (detecta 429)
 - Privacidad de datos (solo datos públicos)
 - Términos de Servicio de Instagram (uso personal, educativo)

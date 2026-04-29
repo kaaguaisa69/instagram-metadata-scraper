@@ -3,6 +3,7 @@ import logging
 
 from app.post_service import PostService
 from infrastructure.config import get_instagram_username
+# from infrastructure.instagram_scraper import InstagramScraper
 from infrastructure.instagram_http_scraper import InstagramHttpScraper
 from infrastructure.json_repository import JsonPostRepository
 
@@ -59,6 +60,7 @@ def main() -> None:
 
     # --- PASO 2: INICIALIZACION ---
     try:
+        # scraper = InstagramScraper(login_username)
         scraper = InstagramHttpScraper()
         repository = JsonPostRepository()
         service = PostService(scraper, repository)
@@ -115,7 +117,7 @@ def main() -> None:
     logger.info("")
 
     if len(posts) == 0:
-        logger.warning("⚠️  ADVERTENCIA: No se extrajeron posts")
+        logger.warning("ADVERTENCIA: No se extrajeron posts")
         logger.warning("Revisa:")
         logger.warning("  1. Que las cookies en .env sean válidas")
         logger.warning("  2. Que la cuenta sea pública")
